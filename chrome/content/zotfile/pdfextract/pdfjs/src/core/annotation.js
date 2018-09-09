@@ -105,6 +105,11 @@ var Annotation = (function AnnotationClosure() {
       quad.height = Math.abs(topLeft.y - bottomRight.y);
       data.quadPoints.push(quad);
     }
+
+    // subject
+    if (dict.has('Subj')) {
+      data.subject = dict.get('Subj');
+    }
     
     var color = dict.get('C');
     if (isArray(color) && color.length === 3) {
