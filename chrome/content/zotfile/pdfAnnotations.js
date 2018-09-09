@@ -216,12 +216,13 @@ Zotero.ZotFile.pdfAnnotations = new function() {
             format_uri_group = 'zotero://open-pdf/groups/%(groupID)/items/%(key)?page=%(page)',
             str_title = this.ZFgetString('extraction.noteTitle'),
             format_title = this.getPref("pdfExtraction.formatNoteTitle"),
-            format_title_color = this.getPref("pdfExtraction.formatNoteTitleColor"),
             format_note = this.getPref("pdfExtraction.formatAnnotationNote"),
             format_highlight = this.getPref("pdfExtraction.formatAnnotationHighlight"),
             format_underline = this.getPref("pdfExtraction.formatAnnotationUnderline"),
             settings_colors = JSON.parse(this.getPref("pdfExtraction.colorCategories")),
-            setting_color_notes = this.getPref("pdfExtraction.colorNotes"),
+            setting_separate_notes = this.getPref("pdfExtraction.separateNotes"),
+            setting_separate_by_color = this.getPref("pdfExtraction.separateByColor"),
+            default_category = this.getPref("pdfExtraction.defaultCategory"),
             cite = this.getPref("pdfExtraction.NoteFullCite") ? this.Wildcards.replaceWildcard(item, "%a %y:").replace(/_(?!.*_)/," and ").replace(/_/g,", ") : "p. ",
             repl = JSON.parse(this.getPref("pdfExtraction.replacements")),
             reg = repl.map(function(obj) {
@@ -234,7 +235,7 @@ Zotero.ZotFile.pdfAnnotations = new function() {
             note = title;
         if (this.getPref("pdfExtraction.UsePDFJSandPoppler"))
             note += ' ' + method;
-        if(setting_color_notes) note = {};
+        if(setting_separate_notes) note = {};
         // iterature through annotations
         for (var i=0; i < annotations.length; i++) {
         // annotations.map(function(anno) {
@@ -263,13 +264,16 @@ Zotero.ZotFile.pdfAnnotations = new function() {
                 var format_markup = anno.subtype == "Highlight" ? format_highlight : format_underline;
                 for (var k = 0; k < repl.length; k++)
                     anno.markup = anno.markup.replace(reg[k], repl[k].replacement);
-                var markup_formated = this.Utils.str_format(format_markup, {'content': anno.markup, 'cite': link, 'page': page, 'uri': uri, 'label': anno.title, 'color': color, 'color_category': color_category_hex});
-                if(!setting_color_notes)
+                var markup_formated = this.Utils.str_format(format_markup, {'content': anno.markup, 'cite': link, 'page': page, 'uri': uri, 'label': anno.title, 'subject': anno.subject, 'color': color, 'color_category': color_category_hex});
+                if(!setting_separate_notes)
                     note += markup_formated;
                 else {
-                    if(!(color_category in note))
-                        note[color_category] = this.Utils.str_format(format_title_color, {'title': str_title, 'date': date_str, 'color': color_category});
-                    note[color_category] += markup_formated;
+                    var category = setting_separate_by_color ? color_category : anno.subject;
+                    if (!category || category == '')
+                        category = default_category;
+                    if(!(category in note))
+                        note[category] = this.Utils.str_format(format_title, {'title': str_title, 'date': date_str, 'category': category});
+                    note[category] += markup_formated;
                 }
             }
             // add to note text
@@ -278,12 +282,15 @@ Zotero.ZotFile.pdfAnnotations = new function() {
                 var content = anno.content.replace(/(\r\n|\n|\r)/gm,"<br>");
                 // '<p><i>%(content) (<a href="%(uri)">note on p.%(page)</a>)</i></p><br>'
                 var content_formated = this.Utils.str_format(format_note, {'content': content, 'cite': link, 'page': page, 'uri': uri, 'label': anno.title,'color': color, 'color_category': color_category_hex});
-                if(!setting_color_notes)
-                    note += content_formated;
+                if(!setting_separate_notes)
+                    note += markup_formated;
                 else {
-                    if(!(color_category in note))
-                        note[color_category] = this.Utils.str_format(format_title_color, {'title': str_title, 'date': date_str, 'label': anno.title, 'color': color_category});
-                    note[color_category] += content_formated;
+                    var category = setting_separate_by_color ? color_category : anno.subject;
+                    if (!category || category == '')
+                        category = default_category;
+                    if(!(category in note))
+                        note[category] = this.Utils.str_format(format_title, {'title': str_title, 'date': date_str, 'category': category});
+                    note[category] += markup_formated;
                 }
             }
         }
